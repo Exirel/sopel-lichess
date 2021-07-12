@@ -1,0 +1,11 @@
+# requirements for dev
+
+flake8
+mypy
+pylint
+coverage
+pytest
+pyroma
+twine
+types-requests
+requests-mock
