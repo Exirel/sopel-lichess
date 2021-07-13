@@ -1,6 +1,7 @@
 """Lichess plugin."""
 from __future__ import generator_stop
 
+import json
 import re
 import threading
 
@@ -28,7 +29,6 @@ def setup(bot: Sopel) -> None:
     client = requests.Session()
     client.headers.update({
         'Authorization': 'Bearer %s' % api_token,
-        'Accept': 'application/json',
     })
 
     bot.memory[MEMORY_KEY] = client
@@ -66,7 +66,8 @@ def lichess_game(bot: SopelWrapper, trigger: Trigger) -> None:
 
     with LOCK:
         response = bot.memory[MEMORY_KEY].get(
-            'https://lichess.org/game/export/%s' % game_id)
+            'https://lichess.org/game/export/%s' % game_id,
+            headers={'Accept': 'application/json'})
 
     if response.status_code == 200:
         data = response.json()
@@ -75,7 +76,20 @@ def lichess_game(bot: SopelWrapper, trigger: Trigger) -> None:
 
 
 @plugin.url(BASE_PATTERN + r'tv/(?P<channel_id>[^/\s]+)$')
+@plugin.output_prefix('[lichess] ')
 def lichess_tv_channel(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess TV channel's URL."""
     channel_id = trigger.group('channel_id')
-    bot.say('TV Channel: %s' % channel_id)
+
+    with LOCK:
+        response = bot.memory[MEMORY_KEY].get(
+            'https://lichess.org/api/tv/%s' % channel_id,
+            params={'nb': 1},
+            headers={'Accept': 'application/x-ndjson'})
+
+    if response.status_code == 200:
+        raw = [raw for raw in response.text.split('\n') if raw][0]
+        data = json.loads(raw)
+        result = parsers.parse_game_data(data)
+        game_url = 'https://lichess.org/%s' % data.get('id')
+        bot.say(' | '.join(result), trailing=' | %s' % game_url)

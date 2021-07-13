@@ -1,6 +1,7 @@
 """Integration tests for the lichess Sopel plugin."""
 from __future__ import generator_stop
 
+import os
 from unittest import mock
 
 import pytest
@@ -151,16 +152,55 @@ def test_game_url_404(irc, user, requests_mock):
     assert not irc.bot.backend.message_sent
 
 
-def test_tv_channel_url(irc, user):
+def test_tv_channel_url(irc, user, requests_mock):
+    filename = os.path.join(os.path.dirname(__file__), 'tv.ndjson')
+    with open(filename, 'r') as fd:
+        body = fd.read()
+
+    requests_mock.get(
+        'https://lichess.org/api/tv/blitz',
+        status_code=200,
+        text=body,
+        headers={'Content-Type': 'application/ndjson'},
+    )
+
     irc.say(
         user,
         '#channel',
         'Check this TV https://lichess.org/tv/blitz so cool!',
     )
 
-    assert irc.bot.backend.message_sent == rawlist(
-        'PRIVMSG #channel :TV Channel: blitz',
+    white_player = '%s Jomajo (2649) +0 %s' % (formatting.bold('IM'), WHITE)
+    black_player = '%s freebrownplayer (2729) +0' % BLACK
+    expected = [
+        parse_game_type({
+            'speed': 'blitz',
+            'variant': 'standard',
+            'rated': True,
+        }),
+        '%s vs %s' % (white_player, black_player),
+        'https://lichess.org/kDluwYWQ',
+    ]
+
+    assert len(irc.bot.backend.message_sent) == 1
+    assert irc.bot.backend.message_sent[-1] == rawlist(
+        'PRIVMSG #channel :[lichess] %s' % ' | '.join(expected),
+    )[-1]
+
+
+def test_tv_channel_url_404(irc, user, requests_mock):
+    requests_mock.get(
+        'https://lichess.org/api/tv/notreal',
+        status_code=404,
     )
+
+    irc.say(
+        user,
+        '#channel',
+        'Check this TV https://lichess.org/tv/notreal so cool!',
+    )
+
+    assert not irc.bot.backend.message_sent
 
 
 def test_other_urls(irc, user):
