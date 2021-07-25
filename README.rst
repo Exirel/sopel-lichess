@@ -7,4 +7,4 @@ from https://lichess.org for:
 
 * games (done)
 * players (TODO)
-* TV channels (TODO)
+* TV channels (done)
