@@ -2,7 +2,7 @@
 from __future__ import generator_stop
 
 import unicodedata
-from typing import List
+from typing import List, cast
 
 from sopel import formatting  # type: ignore
 
@@ -11,10 +11,52 @@ WHITE = unicodedata.lookup('WHITE MEDIUM SMALL SQUARE')
 WINNER = unicodedata.lookup('TROPHY')
 
 
+def format_player(data: dict) -> str:
+    """Format a player account ``data`` dict.
+
+    :return: formatted player's account information
+    """
+    parts: List[str]
+
+    # names
+    name: str = cast(str, data.get('username', 'anonymous'))
+    title: str = cast(str, data.get('title'))
+    if title:
+        name = '%s %s' % (formatting.bold(title), name)
+
+    parts = [name]
+
+    # game count
+    count = data.get('count', {})
+    game_count = 'Played %s rated/%s' % (
+        count.get('rated', 0),
+        count.get('all', 0),
+    )
+    parts.append(game_count)
+
+    # game won
+    parts.append('%s %s' % (WINNER, count.get('win', 0)))
+
+    # following/followers
+    following = 'Following %d/%d' % (
+        data.get('nbFollowing', 0),
+        data.get('nbFollowers', 0),
+    )
+    parts.append(following)
+
+    # now playing
+    playing = data.get('playing')
+    if playing:
+        parts.append('Now playing: %s' % playing)
+
+    # join parts
+    return ' | '.join(parts)
+
+
 def format_game_player(data: dict) -> str:
     """Format a game's player ``data`` dict.
 
-    :return: formatted player's information
+    :return: formatted player's game information
     """
     rating = data.get('rating') or '???'
     diff = int(data.get('ratingDiff') or '0')

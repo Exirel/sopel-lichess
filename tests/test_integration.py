@@ -87,16 +87,49 @@ def user(userfactory):
     return userfactory('Exirel')
 
 
-def test_player_url(irc, user):
+def test_player_url(irc, user, requests_mock):
+    filename = os.path.join(os.path.dirname(__file__), 'player.json')
+    with open(filename, 'r') as fd:
+        body = fd.read()
+
+    requests_mock.get(
+        'https://lichess.org/api/user/georges',
+        status_code=200,
+        text=body,
+        headers={'Content-Type': 'application/json'},
+    )
+
     irc.say(
         user,
         '#channel',
-        'Check my profile https://lichess.org/@/Master-Chess86 and battle me!',
+        'Check my profile https://lichess.org/@/georges and battle me!',
     )
 
+    player = ' | '.join([
+        '%s %s' % (formatting.bold('NM'), 'Georges'),
+        'Played %d rated/%d' % (7157, 9265),
+        '%s 4440' % WINNER,
+        'Following %d/%d' % (299, 2735),
+        'Now playing: https://lichess.org/yqfLYJ5E/black',
+    ])
     assert irc.bot.backend.message_sent == rawlist(
-        'PRIVMSG #channel :Player: Master-Chess86',
+        'PRIVMSG #channel :[lichess] %s' % player,
     )
+
+
+def test_player_url_404(irc, user, requests_mock):
+    requests_mock.get(
+        'https://lichess.org/api/user/abcdefgh',
+        status_code=404,
+    )
+
+    irc.say(
+        user,
+        '#channel',
+        'Check my profile https://lichess.org/@/abcdefgh and battle me!',
+    )
+
+    assert not irc.bot.backend.message_sent
 
 
 def test_game_url(irc, user, requests_mock):

@@ -16,6 +16,7 @@ from sopel_lichess import config, parsers
 BASE_PATTERN = re.escape(r'https://lichess.org/')
 MEMORY_KEY = '__sopel_lichess_api__'
 LOCK = threading.Lock()
+OUTPUT_PREFIX = '[lichess] '
 
 
 def setup(bot: Sopel) -> None:
@@ -52,14 +53,24 @@ def configure(settings: Config) -> None:
 
 
 @plugin.url(BASE_PATTERN + r'@/(?P<player_id>[^/\s]+)')
+@plugin.output_prefix(OUTPUT_PREFIX)
 def lichess_player(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess player's URL."""
     player_id = trigger.group('player_id')
-    bot.say('Player: %s' % player_id)
+
+    with LOCK:
+        response = bot.memory[MEMORY_KEY].get(
+            'https://lichess.org/api/user/%s' % player_id,
+            headers={'Accept': 'application/json'})
+
+    if response.status_code == 200:
+        data = response.json()
+        result = parsers.format_player(data)
+        bot.say(result)
 
 
 @plugin.url(BASE_PATTERN + r'(?P<game_id>[a-zA-Z0-9]{8})$')
-@plugin.output_prefix('[lichess] ')
+@plugin.output_prefix(OUTPUT_PREFIX)
 def lichess_game(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess game's URL."""
     game_id = trigger.group('game_id')
@@ -76,7 +87,7 @@ def lichess_game(bot: SopelWrapper, trigger: Trigger) -> None:
 
 
 @plugin.url(BASE_PATTERN + r'tv/(?P<channel_id>[^/\s]+)$')
-@plugin.output_prefix('[lichess] ')
+@plugin.output_prefix(OUTPUT_PREFIX)
 def lichess_tv_channel(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess TV channel's URL."""
     channel_id = trigger.group('channel_id')

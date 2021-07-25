@@ -3,7 +3,8 @@ from __future__ import generator_stop
 from sopel import formatting
 
 from sopel_lichess.parsers import (BLACK, WHITE, WINNER, format_game_player,
-                                   parse_game_data, parse_game_type)
+                                   format_player, parse_game_data,
+                                   parse_game_type)
 
 MOCK_PLAYER_IM = {
     'rating': 2790,
@@ -43,6 +44,61 @@ MOCK_JSON_GAME = {
     'variant': 'standard',
     'status': 'resign',
     'winner': 'white',
+}
+
+
+MOCK_PLAYER_ACCOUNT = {
+    "id": "georges",
+    "username": "Georges",
+    "online": True,
+    "perfs": {},
+    "createdAt": 1290415680000,
+    "disabled": False,
+    "tosViolation": False,
+    "profile": {
+        "country": "EC",
+        "location": "string",
+        "bio": "Free bugs!",
+        "firstName": "Thibault",
+        "lastName": "Duplessis",
+        "fideRating": 1500,
+        "uscfRating": 1500,
+        "ecfRating": 1500,
+        "links": "github.com/ornicar\r\ntwitter.com/ornicar"
+    },
+    "seenAt": 1522636452014,
+    "patron": True,
+    "playTime": {
+        "total": 3296897,
+        "tv": 12134
+    },
+    "language": "en-GB",
+    "title": "NM",
+    "url": "https://lichess.org/@/georges",
+    "playing": "https://lichess.org/yqfLYJ5E/black",
+    "nbFollowing": 299,
+    "nbFollowers": 2735,
+    "completionRate": 97,
+    "count": {
+        "all": 9265,
+        "rated": 7157,
+        "ai": 531,
+        "draw": 340,
+        "drawH": 331,
+        "loss": 4480,
+        "lossH": 4207,
+        "win": 4440,
+        "winH": 4378,
+        "bookmark": 71,
+        "playing": 6,
+        "import": 66,
+        "me": 0
+    },
+    "streaming": False,
+    "followable": True,
+    "following": False,
+    "blocking": False,
+    "followsYou": False
 }
 
 
@@ -138,3 +194,26 @@ def test_parse_game_no_info():
         '%s vs %s' % (white_player, black_player),
     ])
     assert result == expected
+
+
+def test_format_player():
+    result = format_player(MOCK_PLAYER_ACCOUNT)
+
+    assert result == ' | '.join([
+        '%s %s' % (formatting.bold('NM'), 'Georges'),
+        'Played %d rated/%d' % (7157, 9265),
+        '%s 4440' % WINNER,
+        'Following %d/%d' % (299, 2735),
+        'Now playing: https://lichess.org/yqfLYJ5E/black',
+    ])
+
+
+def test_format_player_no_info():
+    result = format_player({})
+
+    assert result == ' | '.join([
+        'anonymous',
+        'Played 0 rated/0',
+        '%s 0' % WINNER,
+        'Following 0/0',
+    ])
