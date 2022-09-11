@@ -103,6 +103,7 @@ MOCK_PLAYER_ACCOUNT = {
 
 
 def test_parse_game_type():
+    """Test parsing of game type."""
     data = {
         'speed': 'bullet',
         'variant': 'standard',
@@ -112,6 +113,7 @@ def test_parse_game_type():
 
 
 def test_parse_game_type_rated_game():
+    """Test parsing of game type for a rated game."""
     data = {
         'rated': True,
         'speed': 'bullet',
@@ -122,11 +124,13 @@ def test_parse_game_type_rated_game():
 
 
 def test_parse_game_type_no_info():
+    """Test parsing of game type without any data."""
     result = parse_game_type({})
     assert result == 'unrated unknown'
 
 
 def test_format_game_player():
+    """Test formatting of a game player."""
     result = format_game_player(MOCK_PLAYER)
     assert result == ' '.join([
         'gefuehlter_FM',
@@ -135,7 +139,18 @@ def test_format_game_player():
     ])
 
 
+def test_format_game_player_with_mark():
+    """Test formatting of a game player."""
+    result = format_game_player(MOCK_PLAYER, mark=True)
+    assert result == ' '.join([
+        formatting.bold('gefuehlter_FM'),
+        '(2721)',
+        formatting.color('+7', formatting.colors.GREEN),
+    ])
+
+
 def test_format_game_player_title():
+    """Test formatting of a game player who has a title."""
     result = format_game_player(MOCK_PLAYER_IM)
     assert result == ' '.join([
         formatting.bold('IM'),
@@ -146,11 +161,13 @@ def test_format_game_player_title():
 
 
 def test_format_game_player_no_info():
+    """Test formatting of a game player without any data."""
     result = format_game_player({})
     assert result == 'unknown (???) +0'
 
 
 def test_parse_game_white_won():
+    """Test parsing of game data when white won."""
     white_player = '%s %s %s' % (
         format_game_player(MOCK_PLAYER), WINNER, WHITE)
     black_player = '%s %s' % (BLACK, format_game_player(MOCK_PLAYER_IM))
@@ -164,7 +181,39 @@ def test_parse_game_white_won():
     assert result == expected
 
 
+def test_parse_game_white_won_white_marked():
+    """Test parsing of game data when white won."""
+    white_player = '%s %s %s' % (
+        format_game_player(MOCK_PLAYER, mark=True), WINNER, WHITE)
+    black_player = '%s %s' % (BLACK, format_game_player(MOCK_PLAYER_IM))
+
+    result = ' | '.join(parse_game_data(MOCK_JSON_GAME, for_player='white'))
+    expected = ' | '.join([
+        'rated bullet (standard)',
+        '%s vs %s' % (white_player, black_player),
+        'B10: Caro-Kann Defense: Goldman Variation',
+    ])
+    assert result == expected
+
+
+def test_parse_game_white_won_black_marked():
+    """Test parsing of game data when white won."""
+    white_player = '%s %s %s' % (
+        format_game_player(MOCK_PLAYER), WINNER, WHITE)
+    black_player = '%s %s' % (
+        BLACK, format_game_player(MOCK_PLAYER_IM, mark=True))
+
+    result = ' | '.join(parse_game_data(MOCK_JSON_GAME, for_player='black'))
+    expected = ' | '.join([
+        'rated bullet (standard)',
+        '%s vs %s' % (white_player, black_player),
+        'B10: Caro-Kann Defense: Goldman Variation',
+    ])
+    assert result == expected
+
+
 def test_parse_game_black_won():
+    """Test parsing of game data when black won."""
     data = {}
     data.update(MOCK_JSON_GAME)
     data['winner'] = 'black'
@@ -185,7 +234,52 @@ def test_parse_game_black_won():
     assert result == expected
 
 
+def test_parse_game_black_won_white_marked():
+    """Test parsing of game data when black won."""
+    data = {}
+    data.update(MOCK_JSON_GAME)
+    data['winner'] = 'black'
+
+    white_player = '%s %s' % (
+        format_game_player(MOCK_PLAYER, mark=True), WHITE)
+    black_player = '%s %s %s' % (
+        BLACK, WINNER, format_game_player(MOCK_PLAYER_IM))
+
+    print(black_player)
+
+    result = ' | '.join(parse_game_data(data, for_player='white'))
+    expected = ' | '.join([
+        'rated bullet (standard)',
+        '%s vs %s' % (white_player, black_player),
+        'B10: Caro-Kann Defense: Goldman Variation',
+    ])
+    assert result == expected
+
+
+def test_parse_game_black_won_black_marked():
+    """Test parsing of game data when black won."""
+    data = {}
+    data.update(MOCK_JSON_GAME)
+    data['winner'] = 'black'
+
+    white_player = '%s %s' % (
+        format_game_player(MOCK_PLAYER), WHITE)
+    black_player = '%s %s %s' % (
+        BLACK, WINNER, format_game_player(MOCK_PLAYER_IM, mark=True))
+
+    print(black_player)
+
+    result = ' | '.join(parse_game_data(data, for_player='black'))
+    expected = ' | '.join([
+        'rated bullet (standard)',
+        '%s vs %s' % (white_player, black_player),
+        'B10: Caro-Kann Defense: Goldman Variation',
+    ])
+    assert result == expected
+
+
 def test_parse_game_no_info():
+    """Test parsing of game data without any data."""
     white_player = '%s %s' % (format_game_player({}), WHITE)
     black_player = '%s %s' % (BLACK, format_game_player({}))
     result = ' | '.join(parse_game_data({}))
@@ -197,6 +291,7 @@ def test_parse_game_no_info():
 
 
 def test_format_player():
+    """Test formatting a player data."""
     result = format_player(MOCK_PLAYER_ACCOUNT)
 
     assert result == ' | '.join([
@@ -209,6 +304,7 @@ def test_format_player():
 
 
 def test_format_player_no_info():
+    """Test formatting a player data without any data."""
     result = format_player({})
 
     assert result == ' | '.join([

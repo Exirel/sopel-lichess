@@ -4,6 +4,7 @@ from __future__ import generator_stop
 import json
 import re
 import threading
+from typing import Optional
 
 import requests
 from sopel import plugin  # type: ignore
@@ -14,6 +15,7 @@ from sopel.trigger import Trigger  # type: ignore
 from sopel_lichess import config, parsers
 
 BASE_PATTERN = re.escape(r'https://lichess.org/')
+GAME_ID_PATTERN = r'(?P<game_id>[a-zA-Z0-9]{8})'
 MEMORY_KEY = '__sopel_lichess_api__'
 LOCK = threading.Lock()
 OUTPUT_PREFIX = '[lichess] '
@@ -52,7 +54,7 @@ def configure(settings: Config) -> None:
     )
 
 
-@plugin.url(BASE_PATTERN + r'@/(?P<player_id>[^/\s]+)')
+@plugin.url(BASE_PATTERN + r'@/(?P<player_id>[^/\s]+)/?')
 @plugin.output_prefix(OUTPUT_PREFIX)
 def lichess_player(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess player's URL."""
@@ -69,11 +71,15 @@ def lichess_player(bot: SopelWrapper, trigger: Trigger) -> None:
         bot.say(result)
 
 
-@plugin.url(BASE_PATTERN + r'(?P<game_id>[a-zA-Z0-9]{8})$')
+@plugin.url(BASE_PATTERN + GAME_ID_PATTERN + r'/?$')
+@plugin.url(
+    BASE_PATTERN + GAME_ID_PATTERN + r'/(?P<for_player>white|black)/?$')
 @plugin.output_prefix(OUTPUT_PREFIX)
 def lichess_game(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess game's URL."""
-    game_id = trigger.group('game_id')
+    match_data = trigger.groupdict()
+    game_id: str = match_data.get('game_id')
+    for_player: Optional[str] = match_data.get('for_player')
 
     with LOCK:
         response = bot.memory[MEMORY_KEY].get(
@@ -82,11 +88,11 @@ def lichess_game(bot: SopelWrapper, trigger: Trigger) -> None:
 
     if response.status_code == 200:
         data = response.json()
-        result = parsers.parse_game_data(data)
+        result = parsers.parse_game_data(data, for_player=for_player)
         bot.say(' | '.join(result))
 
 
-@plugin.url(BASE_PATTERN + r'tv/(?P<channel_id>[^/\s]+)$')
+@plugin.url(BASE_PATTERN + r'tv/(?P<channel_id>[^/\s]+)/?$')
 @plugin.output_prefix(OUTPUT_PREFIX)
 def lichess_tv_channel(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess TV channel's URL."""

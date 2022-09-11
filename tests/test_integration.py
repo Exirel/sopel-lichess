@@ -67,16 +67,14 @@ MOCK_JSON_GAME = {
 
 @pytest.fixture
 def tmpconfig(configfactory):
+    """Configuration fixture."""
     return configfactory('test.cfg', TMP_CONFIG)
 
 
 @pytest.fixture
-def mockbot(tmpconfig, botfactory):
-    return botfactory.preloaded(tmpconfig, preloads=['lichess'])
-
-
-@pytest.fixture
-def irc(mockbot, ircfactory):
+def irc(tmpconfig, botfactory, ircfactory):
+    """IRC Server fixture."""
+    mockbot = botfactory.preloaded(tmpconfig, preloads=['lichess'])
     server = ircfactory(mockbot)
     server.bot.backend.clear_message_sent()
     return server
@@ -84,13 +82,15 @@ def irc(mockbot, ircfactory):
 
 @pytest.fixture
 def user(userfactory):
+    """User fixture."""
     return userfactory('Exirel')
 
 
 def test_player_url(irc, user, requests_mock):
+    """Test handling of a player URL."""
     filename = os.path.join(os.path.dirname(__file__), 'player.json')
-    with open(filename, 'r') as fd:
-        body = fd.read()
+    with open(filename, 'r', encoding='utf-8') as player_file:
+        body = player_file.read()
 
     requests_mock.get(
         'https://lichess.org/api/user/georges',
@@ -118,6 +118,7 @@ def test_player_url(irc, user, requests_mock):
 
 
 def test_player_url_404(irc, user, requests_mock):
+    """Test handling of a non-existing player URL."""
     requests_mock.get(
         'https://lichess.org/api/user/abcdefgh',
         status_code=404,
@@ -133,6 +134,7 @@ def test_player_url_404(irc, user, requests_mock):
 
 
 def test_game_url(irc, user, requests_mock):
+    """Test handling of a game URL."""
     requests_mock.get(
         'https://lichess.org/game/export/abcdefgh',
         json=MOCK_JSON_GAME,
@@ -170,7 +172,93 @@ def test_game_url(irc, user, requests_mock):
     )[-1]
 
 
+def test_game_url_with_color(irc, user, requests_mock):
+    """Test handling of a game URL with /white or /black at the end."""
+    requests_mock.get(
+        'https://lichess.org/game/export/abcdefgh',
+        json=MOCK_JSON_GAME,
+    )
+
+    # from white's perspective
+    irc.say(
+        user,
+        '#channel',
+        'Check this game https://lichess.org/abcdefgh/white I won!',
+    )
+
+    # game type
+    game_type = parse_game_type({
+        'speed': 'bullet',
+        'variant': 'standard',
+        'rated': True,
+    })
+
+    # game opening
+    game_opening = 'B10: Caro-Kann Defense: Goldman Variation'
+
+    # players
+    white_player = '%s (2721) %s %s %s' % (
+        formatting.bold('gefuehlter_FM'),
+        formatting.color('+7', formatting.colors.GREEN),
+        WINNER,
+        WHITE,
+    )
+    black_player = '%s %s LANCELOT_06 (2790) %s' % (
+        BLACK,
+        formatting.bold('IM'),
+        formatting.color('-7', formatting.colors.RED),
+    )
+
+    # expected data
+    expected = [
+        game_type,
+        '%s vs %s' % (white_player, black_player),
+        game_opening,
+    ]
+
+    # check message
+    assert len(irc.bot.backend.message_sent) == 1
+    assert irc.bot.backend.message_sent[-1] == rawlist(
+        'PRIVMSG #channel :[lichess] %s' % ' | '.join(expected),
+    )[-1]
+
+    # from black's perspective
+    irc.say(
+        user,
+        '#channel',
+        'Check this game https://lichess.org/abcdefgh/black I won!',
+    )
+
+    # players
+    white_player = '%s (2721) %s %s %s' % (
+        'gefuehlter_FM',
+        formatting.color('+7', formatting.colors.GREEN),
+        WINNER,
+        WHITE,
+    )
+    black_player = '%s %s %s (2790) %s' % (
+        BLACK,
+        formatting.bold('IM'),
+        formatting.bold('LANCELOT_06'),
+        formatting.color('-7', formatting.colors.RED),
+    )
+
+    # expected data
+    expected = [
+        game_type,
+        '%s vs %s' % (white_player, black_player),
+        game_opening,
+    ]
+
+    # check message
+    assert len(irc.bot.backend.message_sent) == 2
+    assert irc.bot.backend.message_sent[-1] == rawlist(
+        'PRIVMSG #channel :[lichess] %s' % ' | '.join(expected),
+    )[-1]
+
+
 def test_game_url_404(irc, user, requests_mock):
+    """Test handling of a non-existing game URL."""
     requests_mock.get(
         'https://lichess.org/game/export/abcdefgh',
         status_code=404,
@@ -186,6 +274,7 @@ def test_game_url_404(irc, user, requests_mock):
 
 
 def test_tv_channel_url(irc, user, requests_mock):
+    """Test handling of a TV channel URL."""
     filename = os.path.join(os.path.dirname(__file__), 'tv.ndjson')
     with open(filename, 'r') as fd:
         body = fd.read()
@@ -222,6 +311,7 @@ def test_tv_channel_url(irc, user, requests_mock):
 
 
 def test_tv_channel_url_404(irc, user, requests_mock):
+    """Test handling of a non-existing TV channel URL."""
     requests_mock.get(
         'https://lichess.org/api/tv/notreal',
         status_code=404,
@@ -237,6 +327,7 @@ def test_tv_channel_url_404(irc, user, requests_mock):
 
 
 def test_other_urls(irc, user):
+    """Test handling of other URLs."""
     irc.say(
         user,
         '#channel',
@@ -260,6 +351,7 @@ def test_other_urls(irc, user):
 
 
 def test_configure(tmpconfig):
+    """Test handling of the plugin configure hook."""
     with mock.patch('sopel.config.types.getpass.getpass') as mock_input:
         mock_input.side_effect = ["TEST_API_TOKEN"]
         configure(tmpconfig)

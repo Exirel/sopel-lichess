@@ -2,7 +2,7 @@
 from __future__ import generator_stop
 
 import unicodedata
-from typing import List, cast
+from typing import List, Optional, cast
 
 from sopel import formatting  # type: ignore
 
@@ -53,8 +53,10 @@ def format_player(data: dict) -> str:
     return ' | '.join(parts)
 
 
-def format_game_player(data: dict) -> str:
+def format_game_player(data: dict, *, mark: bool = False) -> str:
     """Format a game's player ``data`` dict.
+
+    If ``mark`` is ``True``, the player's nick will be formatted with bold.
 
     :return: formatted player's game information
     """
@@ -63,6 +65,9 @@ def format_game_player(data: dict) -> str:
     user = data.get('user') or {}
     name = user.get('name') or 'unknown'
     title = user.get('title')
+
+    if mark:
+        name = formatting.bold(name)
 
     if title:
         name = '%s %s' % (formatting.bold(title), name)
@@ -95,7 +100,7 @@ def parse_game_type(data: dict) -> str:
     return game_type
 
 
-def parse_game_data(data: dict) -> List[str]:
+def parse_game_data(data: dict, for_player: Optional[str] = None) -> List[str]:
     """Parse and format a game ``data`` dict.
 
     :return: an ordered list of formatted information for that game data
@@ -111,8 +116,8 @@ def parse_game_data(data: dict) -> List[str]:
     white = players.get('white') or {}
     black = players.get('black') or {}
 
-    white_username = format_game_player(white)
-    black_username = format_game_player(black)
+    white_username = format_game_player(white, mark=for_player == 'white')
+    black_username = format_game_player(black, mark=for_player == 'black')
 
     who_won = data.get('winner')
     white_status = WHITE
