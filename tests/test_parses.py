@@ -1,3 +1,4 @@
+"""Test ``sopel_lichess.parsers``."""
 from __future__ import generator_stop
 
 from sopel import formatting

@@ -276,8 +276,8 @@ def test_game_url_404(irc, user, requests_mock):
 def test_tv_channel_url(irc, user, requests_mock):
     """Test handling of a TV channel URL."""
     filename = os.path.join(os.path.dirname(__file__), 'tv.ndjson')
-    with open(filename, 'r') as fd:
-        body = fd.read()
+    with open(filename, 'r', encoding='utf-8') as tv_file:
+        body = tv_file.read()
 
     requests_mock.get(
         'https://lichess.org/api/tv/blitz',

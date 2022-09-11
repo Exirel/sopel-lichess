@@ -20,16 +20,13 @@ api_token = TEST_TOKEN_VALUE
 
 
 @pytest.fixture
-def tmpconfig(configfactory):
-    return configfactory('test.cfg', TMP_CONFIG)
-
-
-@pytest.fixture
-def mockbot(tmpconfig, botfactory):
-    return botfactory(tmpconfig)
+def mockbot(configfactory, botfactory):
+    """Sopel Bot fixture."""
+    return botfactory(configfactory('test.cfg', TMP_CONFIG))
 
 
 def test_setup(mockbot):
+    """Test plugin's setup hook."""
     assert plugin.MEMORY_KEY not in mockbot.memory
 
     plugin.setup(mockbot)
@@ -40,6 +37,7 @@ def test_setup(mockbot):
 
 
 def test_setup_no_token(configfactory, botfactory):
+    """Test plugin's setup hook when no api_token is set."""
     test_settings = configfactory('base.cfg', BASE_CONFIG)
     test_bot = botfactory(test_settings)
 
@@ -50,6 +48,7 @@ def test_setup_no_token(configfactory, botfactory):
 
 
 def test_shutdown(mockbot):
+    """Test plugin's shutdown hook."""
     mockbot.memory[plugin.MEMORY_KEY] = 'Something'
     plugin.shutdown(mockbot)
     assert plugin.MEMORY_KEY not in mockbot.memory, (
@@ -58,6 +57,7 @@ def test_shutdown(mockbot):
 
 
 def test_shutdown_no_memory(mockbot):
+    """Test plugin's shutdown hook doesn't fail with missing memory key."""
     assert plugin.MEMORY_KEY not in mockbot.memory, 'Precondition failed.'
     plugin.shutdown(mockbot)
     assert plugin.MEMORY_KEY not in mockbot.memory, 'Nothing should be added!'
