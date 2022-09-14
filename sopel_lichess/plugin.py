@@ -14,8 +14,17 @@ from sopel.trigger import Trigger  # type: ignore
 
 from sopel_lichess import config, parsers
 
+# pattern
 BASE_PATTERN = re.escape(r'https://lichess.org/')
+"""Lichess base URL."""
 GAME_ID_PATTERN = r'(?P<game_id>[a-zA-Z0-9]{8})'
+"""Game ID pattern."""
+TRAILING_PATTERN = r'/?(:?\#.*)?$'
+"""Trailing pattern: optional trailing slash and anchor."""
+FOR_PLAYER_PATTERN = r'/(?P<for_player>white|black)'
+"""Game URL with a selected player (white or black)."""
+
+# constants
 MEMORY_KEY = '__sopel_lichess_api__'
 LOCK = threading.Lock()
 OUTPUT_PREFIX = '[lichess] '
@@ -71,9 +80,9 @@ def lichess_player(bot: SopelWrapper, trigger: Trigger) -> None:
         bot.say(result)
 
 
-@plugin.url(BASE_PATTERN + GAME_ID_PATTERN + r'/?$')
+@plugin.url(BASE_PATTERN + GAME_ID_PATTERN + TRAILING_PATTERN)
 @plugin.url(
-    BASE_PATTERN + GAME_ID_PATTERN + r'/(?P<for_player>white|black)/?$')
+    BASE_PATTERN + GAME_ID_PATTERN + FOR_PLAYER_PATTERN + TRAILING_PATTERN)
 @plugin.output_prefix(OUTPUT_PREFIX)
 def lichess_game(bot: SopelWrapper, trigger: Trigger) -> None:
     """Handle Lichess game's URL."""

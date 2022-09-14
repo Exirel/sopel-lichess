@@ -166,10 +166,22 @@ def test_game_url(irc, user, requests_mock):
         'B10: Caro-Kann Defense: Goldman Variation'
     ]
 
+    last_message = 'PRIVMSG #channel :[lichess] %s' % ' | '.join(expected)
     assert len(irc.bot.backend.message_sent) == 1
     assert irc.bot.backend.message_sent[-1] == rawlist(
-        'PRIVMSG #channel :[lichess] %s' % ' | '.join(expected),
+        last_message,
     )[-1]
+
+    # with an anchor
+    irc.say(
+        user,
+        '#channel',
+        'Check this game https://lichess.org/abcdefgh#1 I won!',
+    )
+    assert irc.bot.backend.message_sent[-2:] == rawlist(
+        last_message,
+        last_message,  # a second time, since there is a new message from bot
+    )
 
 
 def test_game_url_with_color(irc, user, requests_mock):
@@ -251,10 +263,22 @@ def test_game_url_with_color(irc, user, requests_mock):
     ]
 
     # check message
+    last_message = 'PRIVMSG #channel :[lichess] %s' % ' | '.join(expected)
     assert len(irc.bot.backend.message_sent) == 2
     assert irc.bot.backend.message_sent[-1] == rawlist(
-        'PRIVMSG #channel :[lichess] %s' % ' | '.join(expected),
+        last_message,
     )[-1]
+
+    # with an anchor
+    irc.say(
+        user,
+        '#channel',
+        'Check this game https://lichess.org/abcdefgh/black#1 I won!',
+    )
+    assert irc.bot.backend.message_sent[-2:] == rawlist(
+        last_message,
+        last_message,  # a second time, since there is a new message from bot
+    )
 
 
 def test_game_url_404(irc, user, requests_mock):
